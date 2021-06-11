@@ -40,7 +40,6 @@ function sendMsgOfArrival(req){
 }
 
 
-
 app.get('/participants',(req,res) => {
     if(participants.name.includes(req.headers.user)){
         res.send(participants);        
@@ -51,11 +50,23 @@ app.get('/participants',(req,res) => {
 
 app.post('/messages',(req,res) =>{
     if(participants.name.includes(req.headers.user)){
-        res.send(messages);        
+        sendMessage(req);
+        registerChatInfo();        
+        res.sendStatus(200);
     }else{
         res.status(400).send("Houve um erro, tente novamente");
     }
 })
+
+function sendMessage(req) {
+    messages.push({
+        to: req.body.to,
+        text: req.body.text,
+        type: req.body.type,
+        from: req.headers.user,
+        time: dayjs().format("HH:mm:ss"),
+    });
+}
 
 app.get('/messages',(req,res) => {
     if(participants.name.includes(req.headers.user)){
@@ -70,7 +81,7 @@ app.post('/status',(req,res) =>{
     res.send();
 })
 
-function saveData() {
+function registerChatInfo() {
     fs.writeFileSync(
         "./data/chatData.json",
         JSON.stringify({ participants, messages })
