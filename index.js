@@ -44,6 +44,16 @@ function sendMsgOfArrival(req){
     });
 }
 
+function sendMsgOfGetOut(participant) {
+    messages.push({
+        from: participant.name,
+        to: "Todos",
+        text: "sai da sala...",
+        type: "status",
+        time: dayjs().format("HH:mm:ss"),
+    });
+}
+
 
 app.get('/participants',(req,res) => {
     if(participants.name.includes(req.headers.user)){
@@ -74,10 +84,23 @@ function sendMessage(req) {
 }
 
 app.get('/messages',(req,res) => {
-    if(participants.name.includes(req.headers.user)){
-        res.send(messages);        
-    }else{
-        res.status(400).send("Houve um erro, tente novamente");
+    
+    const limit = req.query.limit && parseInt(req.query.limit);
+    if (participants.find((p) => p.name === cleanUser)) {
+        const filteredMessages = messages.filter(
+            (m) =>
+                m.type === "message" ||
+                m.to === "Todos" ||
+                m.to === cleanUser ||
+                m.from === cleanUser
+        );
+        if (typeof limit === "number") {
+            filteredMessages.splice(0, filteredMessages.length - limit);
+        }
+        res.send(filteredMessages);
+        saveData();
+    } else {
+        res.sendStatus(400);
     }
 });
 
