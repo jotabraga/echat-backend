@@ -28,13 +28,19 @@ app.get('/participants',(req,res) => {
 });
 
 app.post('/messages',(req,res) =>{
-    participants.push(req.body);
-    res.send();
+    if(participants.name.includes(req.headers.user)){
+        res.send(messages);        
+    }else{
+        res.status(400).send("Houve um erro, tente novamente");
+    }
 })
 
 app.get('/messages',(req,res) => {
-    const postId = req.params.id;
-    res.send(posts.find((post) => post.id == postId));
+    if(participants.name.includes(req.headers.user)){
+        res.send(messages);        
+    }else{
+        res.status(400).send("Houve um erro, tente novamente");
+    }
 });
 
 app.post('/status',(req,res) =>{
