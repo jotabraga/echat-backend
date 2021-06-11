@@ -35,8 +35,13 @@ app.post('/participants',(req,res) =>{
 })
 
 function sendMsgOfArrival(req){
-    message = {from: req.body.name, to: 'Todos', text: 'entra na sala...', type: 'status', time: 'HH:MM:SS'};
-    messages.push(messageOfArrival);
+    messages.push({
+        from: req.body.name, 
+        to: 'Todos', 
+        text: 'entra na sala...', 
+        type: 'status', 
+        time: 'HH:MM:SS'
+    });
 }
 
 
