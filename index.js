@@ -84,15 +84,14 @@ function sendMessage(req) {
 }
 
 app.get('/messages',(req,res) => {
-    
-    const limit = req.query.limit && parseInt(req.query.limit);
-    if (participants.find((p) => p.name === cleanUser)) {
-        const filteredMessages = messages.filter(
-            (m) =>
-                m.type === "message" ||
-                m.to === "Todos" ||
-                m.to === cleanUser ||
-                m.from === cleanUser
+
+    const limit = parseInt(req.query.limit);
+    if (participants.find((p) => p.name === req.headers.user)) {
+        const filteredMessages = messages.filter((message) =>
+                message.type === "message" ||
+                message.to === "Todos" ||
+                message.to === cleanUser ||
+                message.from === cleanUser
         );
         if (typeof limit === "number") {
             filteredMessages.splice(0, filteredMessages.length - limit);
