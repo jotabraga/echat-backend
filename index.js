@@ -9,7 +9,7 @@ const participants = [];
 const messages = [{from:,to:,text:,type:,time:}];
 
 app.post('/participants',(req,res) =>{
-    {participants.includes(req.body.name) 
+    {participants.name.includes(req.body.name) 
         ? 
         res.send("O nome do usuário já está em uso") 
         :
@@ -20,7 +20,11 @@ app.post('/participants',(req,res) =>{
 })
 
 app.get('/participants',(req,res) => {
-    res.send(posts.find((post) => post.id == postId));
+    if(participants.name.includes(req.headers.user)){
+        res.send(participants);        
+    }else{
+        res.status(400).send("Houve um erro, tente novamente");
+    }
 });
 
 app.post('/messages',(req,res) =>{
