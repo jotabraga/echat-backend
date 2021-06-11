@@ -112,12 +112,14 @@ function removeTheInactiveUsers() {
     setInterval(() => {
         let saveTrigger = false;
         participants = participants.filter((p) => {
-            Date.now() - p.lastStatus > 10000 ? {
+            
+            (Date.now() - p.lastStatus) > 10000 ? ((p) =>{
                 sendMsgOfGetOut(p);
                 return false;
-            } : {
-                return true;
-            }
+            }) : (() =>{
+                return true;  
+            })
+                           
         });
         registerChatInfo();
     }, 15000);
