@@ -9,13 +9,16 @@ const participants = [];
 const messages = [{from:,to:,text:,type:,time:}];
 
 app.post('/participants',(req,res) =>{
-    {participants.name.includes(req.body.name) 
-        ? 
-        res.send("O nome do usuário já está em uso") 
-        :
-        momentOfArrival = Date.now();
-        participants.push({...req.body, "lastStatus": momentOfArrival});
-        res.send();
+    
+    if(req.body.name !== "" || req.body.name !== null){
+        {participants.name.includes(req.body.name) 
+            ? 
+            res.send("O nome do usuário já está em uso") 
+            :
+            momentOfArrival = Date.now();
+            participants.push({...req.body, "lastStatus": momentOfArrival});
+            res.send();
+        }
     }
 })
 
