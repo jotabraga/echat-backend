@@ -17,25 +17,23 @@ let participants = chatMemory.participants;
 app.post("/participants", (req, res) => {
   const nickname = req.body;
   if (dataValidate(nickname, "nickName")) {
-      res.sendStatus(400);
-  }
-  else{
+    res.sendStatus(400);
+  } else {
     const treatedName = stringTreatment(nickname.name);
-    participants.find((n) => n.name === treatedName) 
-    ? 
-    res.send("O nome do usuário já está em uso")
-    : (() =>{
-    sendMsgOfArrival(treatedName);
-    const momentOfArrival = Date.now();
-    participants.push({ ...req.body, "lastStatus": momentOfArrival });
-    registerChatInfo();
-    res.sendStatus(200);        
-    })
-    }
+    participants.find((n) => n.name === treatedName)
+      ? res.send("O nome do usuário já está em uso")
+      : () => {
+          sendMsgOfArrival(treatedName);
+          const momentOfArrival = Date.now();
+          participants.push({ ...req.body, lastStatus: momentOfArrival });
+          registerChatInfo();
+          res.sendStatus(200);
+        };
+  }
 });
 
 function stringTreatment(string) {
-    return string.replace(/<|>/g, "").trim();    
+  return string.replace(/<|>/g, "").trim();
 }
 
 function dataValidate(data, type) {
@@ -89,27 +87,30 @@ function sendMsgOfGetOut(nickName) {
 }
 
 app.get("/participants", (req, res) => {
-    const nickname = req.body;
-    if (dataValidate(nickname, "nickName")) {
-        res.sendStatus(400);
-    } else {
-        res.send(participants);
-    }
+  const nickname = req.body;
+  if (dataValidate(nickname, "nickName")) {
+    res.sendStatus(400);
+  } else {
+    res.send(participants);
+  }
 });
 
 app.post("/messages", (req, res) => {
-    const userMessage = req.body;
-    const nickName = req.headers;
+  const userMessage = req.body;
+  const nickName = req.headers;
 
-  if (dataValidate(userMessage, "message") || dataValidate(nickName, "username")) {
-      res.sendStatus(400);
-  }else{
-      const treatedName = stringTreatment(nickName.User);
-      if(participants.find((n) => n.name === treatedName)){
-        sendMessage(req);
-        registerChatInfo();
-        res.sendStatus(200);
-      }
+  if (
+    dataValidate(userMessage, "message") ||
+    dataValidate(nickName, "username")
+  ) {
+    res.sendStatus(400);
+  } else {
+    const treatedName = stringTreatment(nickName.User);
+    if (participants.find((n) => n.name === treatedName)) {
+      sendMessage(req);
+      registerChatInfo();
+      res.sendStatus(200);
+    }
   }
 });
 
@@ -124,27 +125,34 @@ function sendMessage(req) {
 }
 
 app.get("/messages", (req, res) => {
-  const limit = parseInt(req.query.limit);
-  if (participants.find((p) => p.name === req.headers.User)) {
-    const userMessages = messages.filter(
-      (message) =>
-        message.type === "message" ||
-        message.to === "Todos" ||
-        message.to === cleanUser ||
-        message.from === cleanUser
-    );
-    if (typeof limit === "number") {
-      userMessages.splice(0, userMessages.length - limit);
-    }
-    res.send(userMessages);
-    registerChatInfo();
-  } else {
+  const nickName = req.headers;
+  if (dataValidate(nickName, "username")) {
     res.sendStatus(400);
+  } else {
+    const treatedName = stringTreatment(nickName.User);
+    const limitOfMessagesRender = parseInt(req.query.limit);
+
+    if (participants.find((p) => p.name === treatedName)) {
+      const userMessages = messages.filter(
+        (message) =>
+          message.type === "message" ||
+          message.to === "Todos" ||
+          message.to === cleanUser ||
+          message.from === cleanUser
+      );
+
+      userMessages.splice(-limitOfMessagesRender);
+
+      res.send(userMessages);
+      registerChatInfo();
+    } else {
+      res.sendStatus(400);
+    }
   }
 });
 
 app.post("/status", (req, res) => {
-  const participant = participants.find((p) => p.name === req.get("user"));
+  const participant = participants.find((p) => p.name === req.get("User"));
   if (participant) {
     participant.lastStatus = Date.now();
     res.sendStatus(200);
@@ -179,6 +187,6 @@ function registerChatInfo() {
 
 removeTheInactiveUsers();
 
-app.listen(4000, () =>{
-    console.log("Jota server online");
+app.listen(4000, () => {
+  console.log("Jota server online");
 });
