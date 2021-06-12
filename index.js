@@ -2,6 +2,7 @@ import express, { json } from "express";
 import cors from "cors";
 import dayjs from "dayjs";
 import fs from "fs";
+import Joi from "joi";
 
 const app = express();
 app.use(cors());
@@ -12,30 +13,69 @@ const chatMemory = fs.existsSync("./chatMemory.json")
   : { participants: [], messages: [] };
 let messages = chatMemory.messages;
 let participants = chatMemory.participants;
-//{from:,to:,text:,type:,time:}
 
 app.post("/participants", (req, res) => {
-  let username = req.body.name;
 
-  if (username !== "" || username !== null) {
-    participants.name.includes(username)
-      ? res.send("O nome do usuário já está em uso")
-      : sendMsgOfArrival();
-    momentOfArrival = Date.now();
-    participants.push({ ...req.body, lastStatus: momentOfArrival });
-    res.sendStatus(200);
-  } else {
-    res.sendStatus(400);
+  const nickname = req.body;
+
+  if (dataValidate(nickname, "nickName")) {
+      res.sendStatus(400);
   }
+  else{
+    const treatedName = stringTreatment(nickname.name);
+    participants.find((n) => n.name === treatedName) 
+    ? 
+    res.send("O nome do usuário já está em uso")
+    : (() =>{
+    sendMsgOfArrival(treatedName);
+    const momentOfArrival = dayjs().format("HH:mm:ss");
+    participants.push({ ...req.body, "lastStatus": momentOfArrival });
+    res.sendStatus(200);        
+    })
+    }
 });
 
-function sendMsgOfArrival(req) {
+function stringTreatment(string) {
+    return string.replace(/<|>/g, "").trim();    
+}
+
+function dataValidate(data, type) {
+  switch (type) {
+    case "username": {
+      const schema = Joi.object({
+        user: Joi.string().replace(/<|>/g, "").required().trim(),
+      }).unknown(true);
+      const error = schema.validate(data).error;
+      return error ? true : false;
+    }
+    case "nickName": {
+      const schema = Joi.object({
+        name: Joi.string().replace(/<|>/g, "").required().trim(),
+      }).unknown(true);
+      const error = schema.validate(data).error;
+      return error ? true : false;
+    }
+    case "message": {
+      const schema = Joi.object({
+        to: Joi.string().replace(/<|>/g, "").required().trim(),
+        text: Joi.string().replace(/<|>/g, "").required().trim(),
+        type: Joi.string()
+          .pattern(new RegExp(/(^message$|^private_message$)/))
+          .required(),
+      });
+      const error = schema.validate(data).error;
+      return error ? true : false;
+    }
+  }
+}
+
+function sendMsgOfArrival(nickName) {
   messages.push({
-    from: req.body.name,
+    from: nickName,
     to: "Todos",
     text: "entra na sala...",
     type: "status",
-    time: "HH:MM:SS",
+    time: dayjs().format("HH:mm:ss"),
   });
 }
 
@@ -50,7 +90,7 @@ function sendMsgOfGetOut(participant) {
 }
 
 app.get("/participants", (req, res) => {
-  if (participants.name.includes(req.headers.user)) {
+  if (req.get("user") !== null) {
     res.send(participants);
   } else {
     res.sendStatus(400);
@@ -58,7 +98,8 @@ app.get("/participants", (req, res) => {
 });
 
 app.post("/messages", (req, res) => {
-  if (participants.name.includes(req.headers.user)) {
+  if (req !== null) {
+    console.log("etnrou");
     sendMessage(req);
     registerChatInfo();
     res.sendStatus(200);
@@ -98,40 +139,41 @@ app.get("/messages", (req, res) => {
 });
 
 app.post("/status", (req, res) => {
-    const participant = participants.find((p) => p.name === req.headers.user);
-    if (participant) {
-        participant.lastStatus = Date.now();
-        res.sendStatus(200);
-        saveData();
-    } else {
-        res.sendStatus(400);
-    }
+  const participant = participants.find((p) => p.name === req.get("user"));
+  if (participant) {
+    participant.lastStatus = Date.now();
+    res.sendStatus(200);
+    registerChatInfo();
+  } else {
+    res.sendStatus(400);
+  }
 });
 
 function removeTheInactiveUsers() {
-    setInterval(() => {
-        let saveTrigger = false;
-        participants = participants.filter((p) => {
-            
-            (Date.now() - p.lastStatus) > 10000 ? ((p) =>{
-                sendMsgOfGetOut(p);
-                return false;
-            }) : (() =>{
-                return true;  
-            })
-                           
-        });
-        registerChatInfo();
-    }, 15000);
+  setInterval(() => {
+    participants = participants.filter((p) => {
+      Date.now() - p.lastStatus > 10000
+        ? (p) => {
+            sendMsgOfGetOut(p);
+            return false;
+          }
+        : () => {
+            return true;
+          };
+    });
+    registerChatInfo();
+  }, 15000);
 }
 
 function registerChatInfo() {
   fs.writeFileSync(
-    "./data/chatData.json",
+    "./chatMemory.json",
     JSON.stringify({ participants, messages })
   );
 }
 
 removeTheInactiveUsers();
 
-app.listen(4000);
+app.listen(4000, () =>{
+    console.log("Jota server online");
+});
