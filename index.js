@@ -15,9 +15,7 @@ let messages = chatMemory.messages;
 let participants = chatMemory.participants;
 
 app.post("/participants", (req, res) => {
-
   const nickname = req.body;
-
   if (dataValidate(nickname, "nickName")) {
       res.sendStatus(400);
   }
@@ -28,8 +26,9 @@ app.post("/participants", (req, res) => {
     res.send("O nome do usuário já está em uso")
     : (() =>{
     sendMsgOfArrival(treatedName);
-    const momentOfArrival = dayjs().format("HH:mm:ss");
+    const momentOfArrival = Date.now();
     participants.push({ ...req.body, "lastStatus": momentOfArrival });
+    registerChatInfo();
     res.sendStatus(200);        
     })
     }
@@ -79,9 +78,9 @@ function sendMsgOfArrival(nickName) {
   });
 }
 
-function sendMsgOfGetOut(participant) {
+function sendMsgOfGetOut(nickName) {
   messages.push({
-    from: participant.name,
+    from: nickName.name,
     to: "Todos",
     text: "sai da sala...",
     type: "status",
@@ -90,21 +89,27 @@ function sendMsgOfGetOut(participant) {
 }
 
 app.get("/participants", (req, res) => {
-  if (req.get("user") !== null) {
-    res.send(participants);
-  } else {
-    res.sendStatus(400);
-  }
+    const nickname = req.body;
+    if (dataValidate(nickname, "nickName")) {
+        res.sendStatus(400);
+    } else {
+        res.send(participants);
+    }
 });
 
 app.post("/messages", (req, res) => {
-  if (req !== null) {
-    console.log("etnrou");
-    sendMessage(req);
-    registerChatInfo();
-    res.sendStatus(200);
-  } else {
-    res.status(400).send("Houve um erro, tente novamente");
+    const userMessage = req.body;
+    const nickName = req.headers;
+
+  if (dataValidate(userMessage, "message") || dataValidate(nickName, "username")) {
+      res.sendStatus(400);
+  }else{
+      const treatedName = stringTreatment(nickName.User);
+      if(participants.find((n) => n.name === treatedName)){
+        sendMessage(req);
+        registerChatInfo();
+        res.sendStatus(200);
+      }
   }
 });
 
@@ -113,14 +118,14 @@ function sendMessage(req) {
     to: req.body.to,
     text: req.body.text,
     type: req.body.type,
-    from: req.headers.user,
+    from: req.headers.User,
     time: dayjs().format("HH:mm:ss"),
   });
 }
 
 app.get("/messages", (req, res) => {
   const limit = parseInt(req.query.limit);
-  if (participants.find((p) => p.name === req.headers.user)) {
+  if (participants.find((p) => p.name === req.headers.User)) {
     const userMessages = messages.filter(
       (message) =>
         message.type === "message" ||
