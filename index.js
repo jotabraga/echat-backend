@@ -13,18 +13,21 @@ const chatMemory = fs.existsSync("./chatMemory.json")
 let messages = chatMemory.messages;
 let participants = chatMemory.participants;
 
+app.listen(4000, () => {
+  console.log("Jota server online on port 4000");
+});
 
 app.post("/participants", (req, res) => {
   const nickname = req.body.name;
-  
-  if (verifyData(nickname)) {        
-    if(participants.find((n) => n.name === nickname)){
-      res.send("O nome do usuário já está em uso")
-    }else{
+
+  if (verifyData(nickname)) {
+    if (participants.find((n) => n.name === nickname)) {
+      res.send("O nome do usuário já está em uso");
+    } else {
       addParticipant(nickname);
       registerChatInfo();
       res.sendStatus(200);
-    }      
+    }
   } else {
     res.sendStatus(400);
   }
@@ -32,15 +35,15 @@ app.post("/participants", (req, res) => {
 
 function addParticipant(nickname) {
   participants.push({
-      name: nickname,
-      lastStatus: Date.now(),
+    name: nickname,
+    lastStatus: Date.now(),
   });
   messages.push({
-      from: nickname,
-      to: "Todos",
-      text: "entra na sala...",
-      type: "status",
-      time: dayjs().format("HH:mm:ss"),
+    from: nickname,
+    to: "Todos",
+    text: "entra na sala...",
+    type: "status",
+    time: dayjs().format("HH:mm:ss"),
   });
 }
 
@@ -51,7 +54,6 @@ function verifyData(data) {
     return false;
   }
 }
-
 
 function sendMsgOfGetOut(nickName) {
   messages.push({
@@ -97,7 +99,6 @@ app.get("/messages", (req, res) => {
   const limitOfMessagesRender = parseInt(req.query.limit);
 
   if (participants.find((p) => p.name === req.get("user"))) {
-
     let userMessages = messages.filter(
       (message) =>
         message.type === "message" ||
@@ -105,7 +106,7 @@ app.get("/messages", (req, res) => {
         message.to === req.get("user") ||
         message.from === req.get("user")
     );
-    
+
     if (limitOfMessagesRender) {
       userMessages = userMessages.splice(-limitOfMessagesRender);
     }
@@ -151,10 +152,6 @@ function registerChatInfo() {
 }
 
 removeTheInactiveUsers();
-
-app.listen(4000, () => {
-  console.log("Jota server online");
-});
 
 // function stringTreatment(word) {
 //   return word.replace(/<|>/g, "").trim();
