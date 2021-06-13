@@ -2,7 +2,6 @@ import express, { json } from "express";
 import cors from "cors";
 import dayjs from "dayjs";
 import fs from "fs";
-import Joi from "joi";
 
 const app = express();
 app.use(cors());
@@ -14,71 +13,49 @@ const chatMemory = fs.existsSync("./chatMemory.json")
 let messages = chatMemory.messages;
 let participants = chatMemory.participants;
 
+
 app.post("/participants", (req, res) => {
-  const nickname = req.body;
-  if (dataValidate(nickname, "nickName")) {
-    res.sendStatus(400);
+  const nickname = req.body.name;
+  
+  if (verifyData(nickname)) {        
+    if(participants.find((n) => n.name === nickname)){
+      res.send("O nome do usuário já está em uso")
+    }else{
+      addParticipant(nickname);
+      registerChatInfo();
+      res.sendStatus(200);
+    }      
   } else {
-    const treatedName = stringTreatment(nickname.name);
-    participants.find((n) => n.name === treatedName)
-      ? res.send("O nome do usuário já está em uso")
-      : () => {
-          sendMsgOfArrival(treatedName);
-          const momentOfArrival = Date.now();
-          participants.push({ ...req.body, lastStatus: momentOfArrival });
-          registerChatInfo();
-          res.sendStatus(200);
-        };
+    res.sendStatus(400);
   }
 });
 
-function stringTreatment(string) {
-  return string.replace(/<|>/g, "").trim();
-}
-
-function dataValidate(data, type) {
-  switch (type) {
-    case "username": {
-      const schema = Joi.object({
-        user: Joi.string().replace(/<|>/g, "").required().trim(),
-      }).unknown(true);
-      const error = schema.validate(data).error;
-      return error ? true : false;
-    }
-    case "nickName": {
-      const schema = Joi.object({
-        name: Joi.string().replace(/<|>/g, "").required().trim(),
-      }).unknown(true);
-      const error = schema.validate(data).error;
-      return error ? true : false;
-    }
-    case "message": {
-      const schema = Joi.object({
-        to: Joi.string().replace(/<|>/g, "").required().trim(),
-        text: Joi.string().replace(/<|>/g, "").required().trim(),
-        type: Joi.string()
-          .pattern(new RegExp(/(^message$|^private_message$)/))
-          .required(),
-      });
-      const error = schema.validate(data).error;
-      return error ? true : false;
-    }
-  }
-}
-
-function sendMsgOfArrival(nickName) {
+function addParticipant(nickname) {
+  participants.push({
+      name: nickname,
+      lastStatus: Date.now(),
+  });
   messages.push({
-    from: nickName,
-    to: "Todos",
-    text: "entra na sala...",
-    type: "status",
-    time: dayjs().format("HH:mm:ss"),
+      from: nickname,
+      to: "Todos",
+      text: "entra na sala...",
+      type: "status",
+      time: dayjs().format("HH:mm:ss"),
   });
 }
 
+function verifyData(data) {
+  if (typeof data == "string" && data !== "" && data !== null) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 function sendMsgOfGetOut(nickName) {
   messages.push({
-    from: nickName.name,
+    from: nickName,
     to: "Todos",
     text: "sai da sala...",
     type: "status",
@@ -87,30 +64,22 @@ function sendMsgOfGetOut(nickName) {
 }
 
 app.get("/participants", (req, res) => {
-  const nickname = req.body;
-  if (dataValidate(nickname, "nickName")) {
-    res.sendStatus(400);
-  } else {
-    res.send(participants);
-  }
+  res.send(participants);
 });
 
 app.post("/messages", (req, res) => {
-  const userMessage = req.body;
-  const nickName = req.headers;
+  const userMessage = req.body.text;
 
-  if (
-    dataValidate(userMessage, "message") ||
-    dataValidate(nickName, "username")
-  ) {
-    res.sendStatus(400);
-  } else {
-    const treatedName = stringTreatment(nickName.User);
-    if (participants.find((n) => n.name === treatedName)) {
+  if (dataValidate(userMessage)) {
+    const nickName = req.get("user");
+
+    if (participants.find((n) => n.name === nickName)) {
       sendMessage(req);
       registerChatInfo();
       res.sendStatus(200);
     }
+  } else {
+    res.sendStatus(400);
   }
 });
 
@@ -125,34 +94,30 @@ function sendMessage(req) {
 }
 
 app.get("/messages", (req, res) => {
-  const nickName = req.headers;
-  if (dataValidate(nickName, "username")) {
-    res.sendStatus(400);
-  } else {
-    const treatedName = stringTreatment(nickName.User);
-    const limitOfMessagesRender = parseInt(req.query.limit);
+  const limitOfMessagesRender = parseInt(req.query.limit);
 
-    if (participants.find((p) => p.name === treatedName)) {
-      const userMessages = messages.filter(
-        (message) =>
-          message.type === "message" ||
-          message.to === "Todos" ||
-          message.to === cleanUser ||
-          message.from === cleanUser
-      );
+  if (participants.find((p) => p.name === req.get("user"))) {
 
-      userMessages.splice(-limitOfMessagesRender);
-
-      res.send(userMessages);
-      registerChatInfo();
-    } else {
-      res.sendStatus(400);
+    let userMessages = messages.filter(
+      (message) =>
+        message.type === "message" ||
+        message.to === "Todos" ||
+        message.to === req.get("user") ||
+        message.from === req.get("user")
+    );
+    
+    if (limitOfMessagesRender) {
+      userMessages = userMessages.splice(-limitOfMessagesRender);
     }
+    res.send(userMessages);
+    registerChatInfo();
+  } else {
+    res.sendStatus(400);
   }
 });
 
 app.post("/status", (req, res) => {
-  const participant = participants.find((p) => p.name === req.get("User"));
+  const participant = participants.find((p) => p.name === req.get("user"));
   if (participant) {
     participant.lastStatus = Date.now();
     res.sendStatus(200);
@@ -167,7 +132,7 @@ function removeTheInactiveUsers() {
     participants = participants.filter((p) => {
       Date.now() - p.lastStatus > 10000
         ? (p) => {
-            sendMsgOfGetOut(p);
+            sendMsgOfGetOut(p.name);
             return false;
           }
         : () => {
@@ -190,3 +155,37 @@ removeTheInactiveUsers();
 app.listen(4000, () => {
   console.log("Jota server online");
 });
+
+// function stringTreatment(word) {
+//   return word.replace(/<|>/g, "").trim();
+// }
+
+// function dataValidate(data, type) {
+//   switch (type) {
+//     case "username": {
+//       const schema = Joi.object({
+//         user: Joi.string().replace(/<|>/g, "").required().trim(),
+//       }).unknown(true);
+//       const error = schema.validate(data).error;
+//       return error ? true : false;
+//     }
+//     case "nickName": {
+//       const schema = Joi.object({
+//         name: Joi.string().replace(/<|>/g, "").required().trim(),
+//       }).unknown(true);
+//       const error = schema.validate(data).error;
+//       return error ? true : false;
+//     }
+//     case "message": {
+//       const schema = Joi.object({
+//         to: Joi.string().replace(/<|>/g, "").required().trim(),
+//         text: Joi.string().replace(/<|>/g, "").required().trim(),
+//         type: Joi.string()
+//           .pattern(new RegExp(/(^message$|^private_message$)/))
+//           .required(),
+//       });
+//       const error = schema.validate(data).error;
+//       return error ? true : false;
+//     }
+//   }
+// }
