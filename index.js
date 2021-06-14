@@ -55,15 +55,6 @@ function verifyData(data) {
   }
 }
 
-function sendMsgOfGetOut(nickName) {
-  messages.push({
-    from: nickName,
-    to: "Todos",
-    text: "sai da sala...",
-    type: "status",
-    time: dayjs().format("HH:mm:ss"),
-  });
-}
 
 app.get("/participants", (req, res) => {
   res.send(participants);
@@ -130,14 +121,15 @@ app.post("/status", (req, res) => {
 
 function removeTheInactiveUsers() {
   setInterval(() => {
-    participants = participants.filter((p) => {
-      if(Date.now() - p.lastStatus > 10000){
-        sendMsgOfGetOut(p.name);
-        return false;
-      }else{
+    const newParticipants = participants.filter((p) => {
+      if (Date.now() - p.lastStatus <= 10000) {
         return true;
-      }    
+      }
+      logout(p);
     });
+  
+    participants.length = 0;
+    newParticipants.forEach((p) => participants.push(p));
     registerChatInfo();
   }, 15000);
 }
@@ -148,6 +140,18 @@ function registerChatInfo() {
     JSON.stringify({ participants, messages })
   );
 }
+
+const logout = (p) => {
+	const message = {
+		from: p.name,
+		to: 'Todos',
+		text: 'sai da sala...',
+		type: 'status',
+		time: dayjs().format('HH:mm:ss'),
+	};
+
+	messages.push(message);
+};
 
 removeTheInactiveUsers();
 
