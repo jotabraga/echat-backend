@@ -1,1 +1,1 @@
-{"participants":[],"messages":[{"from":"jotaaa","to":"Todos","text":"entra na sala...","type":"status","time":"11:35:03"},{"from":"jotaaa","to":"Todos","text":"sai da sala...","type":"status","time":"11:36:54"}]}
+{"participants":[{"name":"jota","lastStatus":1623684610754}],"messages":[{"from":"jota","to":"Todos","text":"entra na sala...","type":"status","time":"12:26:00"},{"to":"Todos","text":"teste","type":"message","from":"jota","time":"12:26:11"},{"to":"Todos","text":"Validação","type":"message","from":"jota","time":"12:29:56"}]}

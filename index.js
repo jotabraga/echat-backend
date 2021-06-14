@@ -63,11 +63,11 @@ app.get("/participants", (req, res) => {
 app.post("/messages", (req, res) => {
   const userMessage = req.body.text;
 
-  if (dataValidate(userMessage)) {
+  if (verifyData(userMessage)) {
     const nickName = req.get("user");
 
     if (participants.find((n) => n.name === nickName)) {
-      sendMessage(req);
+      sendMessage(req, nickName);
       registerChatInfo();
       res.sendStatus(200);
     }
@@ -76,12 +76,12 @@ app.post("/messages", (req, res) => {
   }
 });
 
-function sendMessage(req) {
+function sendMessage(req, nickName) {
   messages.push({
     to: req.body.to,
     text: req.body.text,
     type: req.body.type,
-    from: req.headers.User,
+    from: nickName,
     time: dayjs().format("HH:mm:ss"),
   });
 }
@@ -102,7 +102,6 @@ app.get("/messages", (req, res) => {
       userMessages = userMessages.splice(-limitOfMessagesRender);
     }
     res.send(userMessages);
-    registerChatInfo();
   } else {
     res.sendStatus(400);
   }
@@ -113,7 +112,6 @@ app.post("/status", (req, res) => {
   if (participant) {
     participant.lastStatus = Date.now();
     res.sendStatus(200);
-    registerChatInfo();
   } else {
     res.sendStatus(400);
   }
@@ -122,14 +120,15 @@ app.post("/status", (req, res) => {
 function removeTheInactiveUsers() {
   setInterval(() => {
     const newParticipants = participants.filter((p) => {
-      if (Date.now() - p.lastStatus <= 10000) {
+      if (Date.now() - p.lastStatus < 10000) {
         return true;
+      }else{
+        return false;
+        logout(p);
       }
-      logout(p);
+
     });
-  
-    participants.length = 0;
-    newParticipants.forEach((p) => participants.push(p));
+    participants = newParticipants;
     registerChatInfo();
   }, 15000);
 }
