@@ -131,14 +131,12 @@ app.post("/status", (req, res) => {
 function removeTheInactiveUsers() {
   setInterval(() => {
     participants = participants.filter((p) => {
-      Date.now() - p.lastStatus > 10000
-        ? (p) => {
-            sendMsgOfGetOut(p.name);
-            return false;
-          }
-        : () => {
-            return true;
-          };
+      if(Date.now() - p.lastStatus > 10000){
+        sendMsgOfGetOut(p.name);
+        return false;
+      }else{
+        return true;
+      }    
     });
     registerChatInfo();
   }, 15000);
